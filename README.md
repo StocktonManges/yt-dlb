@@ -1,20 +1,21 @@
 # Requirements
 
-- yt-dlp requires JavaScript to pass YouTube challenges. EJS packages can be installed via pip like so:
+`yt-dlp` requires JavaScript to pass YouTube challenges. EJS packages can be installed via pip like so:
 
 ```
 pip install -U "yt-dlp[default]"
 ```
 
-You will also need to install deno and place it in the PATH variable:
+Install the deno JS runtime and place it in the PATH variable:
 
 ```
 winget install deno
 ```
 
-- install ffmpeg for supporting downloads by custom sections of the youtube video and converting to .mp3 files.
+Install ffmpeg and place it in the PATH variable:
 
 ```
 winget install ffmpeg
 ```
 
+> This is to support downloading a specific time range of a video and converting audio files to .mp3.
