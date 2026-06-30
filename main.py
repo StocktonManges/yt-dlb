@@ -6,6 +6,18 @@ import threading
 from pathlib import Path
 
 
+def default_download_path():
+    """Return the default download directory.
+
+    Prefers the personal DND audio folder when it exists, otherwise falls
+    back to the user's Downloads folder.
+    """
+    preferred = Path("/Users/stockton.manges/PERSONAL/DND/audio")
+    if preferred.is_dir():
+        return str(preferred)
+    return str(Path.home() / "Downloads")
+
+
 def normalize_time(t):
     """Normalize a user-provided time string for yt-dlp.
 
@@ -179,7 +191,7 @@ if len(sys.argv) > 1 and sys.argv[1] != "--gui":
     name_part = custom_name if custom_name else "%(title)s"
     cmd.extend(["-o", f"{name_part}.%(ext)s"])
 
-    downloads = str(Path.home() / "Downloads")
+    downloads = default_download_path()
     cmd.extend(["-P", downloads])
 
     cmd.append(url)
@@ -234,7 +246,7 @@ output = scrolledtext.ScrolledText(root, height=15)
 output.pack()
 
 def get_downloads_path():
-    return str(Path.home() / "Downloads")
+    return default_download_path()
 
 def submit():
     cmd = ["yt-dlp", "--js-runtimes", "deno", "--remote-components", "ejs:github"]
