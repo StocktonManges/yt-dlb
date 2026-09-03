@@ -13,6 +13,37 @@ from pathlib import Path
 YOUTUBE_CLIENTS = ["--extractor-args", "youtube:player_client=tv_simply,mweb,web_embedded,default"]
 
 
+def usage():
+    """Return adl's own help text (not yt-dlp's)."""
+    return f"""adl - download YouTube (or any yt-dlp-supported) audio as mp3.
+
+Usage:
+  adl <url> [-s START] [-e END] [-n NAME] [-m DIR]
+  adl --gui
+  adl -h | --help
+
+Options:
+  -s START   Trim start. Bare number = seconds. "30", "1:30", "1:30:45".
+  -e END     Trim end, same formats. Omit to run to the end of the video.
+  -n NAME    Output filename without extension. Default: the video title.
+  -m DIR     Move the finished file here instead of the default directory.
+  --gui      Launch the graphical version.
+  -h, --help Show this message.
+
+Notes:
+  Downloads land in {default_download_path()} by default.
+  When -s/-e are given, the full audio is fetched at native speed and then
+  trimmed locally with ffmpeg, which is far faster than yt-dlp's
+  --download-sections for short clips of long videos. The trimmed file gets a
+  _START-END suffix.
+
+Examples:
+  adl 'https://youtu.be/VIDEO'
+  adl 'https://youtu.be/VIDEO' -s 1:05 -e 2:30 -n 'tavern ambience'
+  adl 'https://youtu.be/VIDEO' -m ~/Desktop
+"""
+
+
 def default_download_path():
     """Return the default download directory.
 
@@ -162,6 +193,10 @@ def run_download(cmd, norm_start, norm_end, move_to=None, log=print, runner=None
 
 
 # ====================== COMMAND LINE MODE ======================
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(usage())
+    sys.exit(0)
+
 if len(sys.argv) > 1 and sys.argv[1] != "--gui":
     url = sys.argv[1]
     start = None
