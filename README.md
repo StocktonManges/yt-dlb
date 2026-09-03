@@ -88,3 +88,32 @@ Because `adl` passes arguments into the Python wrapper and then into `yt-dlp`, y
 ```
 adl -h
 ```
+
+## One-time setup: PO token provider
+
+YouTube now serves SABR-only streams to yt-dlp's default web clients, so yt-dlp
+falls back to the `android_vr` client — whose media URLs answer
+`HTTP Error 403: Forbidden`. The clients that still hand out plain https URLs
+(`tv_simply`, `mweb`, `web_embedded`, pinned via `YOUTUBE_CLIENTS` in
+`main.py`) require a GVS PO token, which yt-dlp can only get from an external
+provider.
+
+Install the provider once:
+
+```bash
+# yt-dlp plugin (Homebrew's yt-dlp uses its own Python, so drop the plugin
+# into yt-dlp's plugin dir rather than pip-installing into the system Python)
+python3 -m pip install -U bgutil-ytdlp-pot-provider
+SP=$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+mkdir -p ~/.config/yt-dlp/plugins/bgutil-ytdlp-pot-provider
+cp -R "$SP/yt_dlp_plugins" ~/.config/yt-dlp/plugins/bgutil-ytdlp-pot-provider/
+
+# token server (restarts automatically with Docker)
+docker run --name bgutil-provider -d --restart unless-stopped \
+  -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider
+```
+
+Verify with `curl http://127.0.0.1:4416/ping`. If downloads start 403'ing
+again, first check that Docker is running and that container is up; then check
+`yt-dlp -v <url>` for a `[pot] PO Token Providers:` line that lists
+`bgutil:http` rather than `none`.

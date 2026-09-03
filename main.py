@@ -6,6 +6,13 @@ import threading
 from pathlib import Path
 
 
+# YouTube serves SABR-only streams to its default web clients, so yt-dlp falls
+# back to `android_vr`, whose media URLs now answer 403 Forbidden. These
+# clients still hand out plain https format URLs, provided a GVS PO token is
+# available from the bgutil provider (see README for the one-time setup).
+YOUTUBE_CLIENTS = ["--extractor-args", "youtube:player_client=tv_simply,mweb,web_embedded,default"]
+
+
 def default_download_path():
     """Return the default download directory.
 
@@ -180,6 +187,7 @@ if len(sys.argv) > 1 and sys.argv[1] != "--gui":
             i += 1
 
     cmd = ["yt-dlp", "--js-runtimes", "deno", "--remote-components", "ejs:github",
+           *YOUTUBE_CLIENTS,
            "-x", "--audio-format", "mp3", "--ignore-errors", "-i"]
 
     # Normalize bounds so a bare number is interpreted as seconds. We don't
@@ -249,7 +257,8 @@ def get_downloads_path():
     return default_download_path()
 
 def submit():
-    cmd = ["yt-dlp", "--js-runtimes", "deno", "--remote-components", "ejs:github"]
+    cmd = ["yt-dlp", "--js-runtimes", "deno", "--remote-components", "ejs:github",
+           *YOUTUBE_CLIENTS]
 
     for opt, _, var in opts:
         if var.get():
