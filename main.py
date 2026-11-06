@@ -19,6 +19,7 @@ def usage():
 
 Usage:
   adl <url> [-s START] [-e END] [-n NAME] [-m DIR]
+  adl <playlist-url> -p [-m DIR]
   adl --gui
   adl -h | --help
 
@@ -27,6 +28,10 @@ Options:
   -e END     Trim end, same formats. Omit to run to the end of the video.
   -n NAME    Output filename without extension. Default: the video title.
   -m DIR     Move the finished file here instead of the default directory.
+  -p         Download the whole playlist the URL points to. Files go into a
+             subfolder named after the playlist, numbered by playlist order.
+             Cannot be combined with -s/-e/-n. Without -p, a watch URL that
+             has a &list=... parameter downloads only that one video.
   --gui      Launch the graphical version.
   -h, --help Show this message.
 
@@ -41,6 +46,7 @@ Examples:
   adl 'https://youtu.be/VIDEO'
   adl 'https://youtu.be/VIDEO' -s 1:05 -e 2:30 -n 'tavern ambience'
   adl 'https://youtu.be/VIDEO' -m ~/Desktop
+  adl 'https://www.youtube.com/playlist?list=PLAYLIST' -p
 """
 
 
@@ -203,6 +209,7 @@ if len(sys.argv) > 1 and sys.argv[1] != "--gui":
     end = None
     custom_name = None
     move_to = None
+    playlist = False
 
     i = 2
     while i < len(sys.argv):
@@ -218,8 +225,15 @@ if len(sys.argv) > 1 and sys.argv[1] != "--gui":
         elif sys.argv[i] == "-m" and i+1 < len(sys.argv):
             move_to = sys.argv[i+1]
             i += 2
+        elif sys.argv[i] == "-p":
+            playlist = True
+            i += 1
         else:
             i += 1
+
+    if playlist and (start or end or custom_name):
+        print("Error: -p cannot be combined with -s, -e or -n.", file=sys.stderr)
+        sys.exit(2)
 
     cmd = ["yt-dlp", "--js-runtimes", "deno", "--remote-components", "ejs:github",
            *YOUTUBE_CLIENTS,
@@ -231,8 +245,12 @@ if len(sys.argv) > 1 and sys.argv[1] != "--gui":
     norm_start = normalize_time(start)
     norm_end = normalize_time(end)
 
-    name_part = custom_name if custom_name else "%(title)s"
-    cmd.extend(["-o", f"{name_part}.%(ext)s"])
+    if playlist:
+        cmd.extend(["--yes-playlist", "-o",
+                    "%(playlist_title)s/%(playlist_index)03d - %(title)s.%(ext)s"])
+    else:
+        name_part = custom_name if custom_name else "%(title)s"
+        cmd.extend(["--no-playlist", "-o", f"{name_part}.%(ext)s"])
 
     downloads = default_download_path()
     cmd.extend(["-P", downloads])
@@ -263,6 +281,10 @@ end_entry.pack()
 tk.Label(root, text="Output filename (without extension - leave empty for video title):").pack(anchor="w")
 filename_entry = tk.Entry(root, width=80)
 filename_entry.pack()
+
+playlist_var = tk.BooleanVar()
+tk.Checkbutton(root, text="Download whole playlist (ignores start/end/filename)",
+               variable=playlist_var).pack(anchor="w")
 
 # Common options
 opts = [
@@ -299,12 +321,16 @@ def submit():
         if var.get():
             cmd.extend(opt.split())
 
-    norm_start = normalize_time(start_entry.get().strip())
-    norm_end = normalize_time(end_entry.get().strip())
-
-    fname = filename_entry.get().strip()
-    name_part = fname if fname else "%(title)s"
-    cmd.extend(["-o", f"{name_part}.%(ext)s"])
+    if playlist_var.get():
+        norm_start = norm_end = None
+        cmd.extend(["--yes-playlist", "-o",
+                    "%(playlist_title)s/%(playlist_index)03d - %(title)s.%(ext)s"])
+    else:
+        norm_start = normalize_time(start_entry.get().strip())
+        norm_end = normalize_time(end_entry.get().strip())
+        fname = filename_entry.get().strip()
+        name_part = fname if fname else "%(title)s"
+        cmd.extend(["--no-playlist", "-o", f"{name_part}.%(ext)s"])
 
     extra = extra_entry.get().strip()
     if extra:
